@@ -16,7 +16,7 @@ export default function CheckoutScreen({ navigation }) {
 
     // Sikeres fizetés esetén
     Alert.alert(`Köszönjük a rendelést, ${name}!`, '', [
-      { text: 'OK', onPress: () => navigation.navigate('Products') }, // Visszairányítás a termékekre
+      { text: 'OK', onPress: () => navigation.navigate('Home') }, // Visszairányítás a termékekre
     ]);
   };
 
