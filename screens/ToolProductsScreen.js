@@ -1,38 +1,36 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, FlatList, Button, StyleSheet, ImageBackground, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { CartContext } from '../contexts/CartContext';
-
-const allProducts = [
-  // Szerszámok
-  { id: '1', name: 'Csavarkulcs', price: 1500, category: 'Szerszám' },
-  { id: '2', name: 'Kalapács', price: 2000, category: 'Szerszám' },
-  { id: '3', name: 'Fűrész', price: 3000, category: 'Szerszám' },
-  { id: '4', name: 'Csavarhúzó készlet', price: 2500, category: 'Szerszám' },
-  { id: '5', name: 'Fogó', price: 1800, category: 'Szerszám' },
-  
-  // Gépek
-  { id: '6', name: 'Fúrógép', price: 10000, category: 'Gépek' },
-  { id: '7', name: 'Csiszológép', price: 12000, category: 'Gépek' },
-  { id: '8', name: 'Vízszivattyú', price: 15000, category: 'Gépek' },
-  { id: '9', name: 'Hegesztőgép', price: 20000, category: 'Gépek' },
-  { id: '10', name: 'Láncfűrész', price: 25000, category: 'Gépek' },
-  
-  // Védőfelszerelés
-  { id: '11', name: 'Védőszemüveg', price: 1000, category: 'Védőfelszerelés' },
-  { id: '12', name: 'Füldugó', price: 500, category: 'Védőfelszerelés' },
-  { id: '13', name: 'Védőkesztyű', price: 1500, category: 'Védőfelszerelés' },
-  { id: '14', name: 'Sisak', price: 3000, category: 'Védőfelszerelés' },
-  { id: '15', name: 'Légzésvédő', price: 2500, category: 'Védőfelszerelés' },
-];
+import { db } from '../firebaseConfig'; // Adjust the path to your Firebase config file
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function TechnicalProductsScreen({ navigation }) {
   const { addToCart } = useContext(CartContext);
+  const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Szűrt termékek
-  const filteredProducts = allProducts.filter(product => {
+  // Fetch products from Firestore
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'ToolProducts'));
+        const fetchedProducts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error("Error fetching products: ", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Filter products based on category and search query
+  const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -48,7 +46,7 @@ export default function TechnicalProductsScreen({ navigation }) {
       <View style={styles.overlay}>
         <Button title="Ugrás a kosárhoz" onPress={() => navigation.navigate('Cart')} />
 
-        {/* Keresőmező */}
+        {/* Search Input */}
         <TextInput
           style={styles.searchInput}
           placeholder="Keresés terméknév alapján"
@@ -56,7 +54,7 @@ export default function TechnicalProductsScreen({ navigation }) {
           onChangeText={setSearchQuery}
         />
 
-        {/* Kategória kiválasztó */}
+        {/* Category Picker */}
         <Picker
           selectedValue={selectedCategory}
           style={styles.picker}
@@ -68,7 +66,7 @@ export default function TechnicalProductsScreen({ navigation }) {
           <Picker.Item label="Védőfelszerelés" value="Védőfelszerelés" />
         </Picker>
 
-        {/* Ha nincs találat, megjelenítjük az üzenetet */}
+        {/* Display filtered products or no results message */}
         {filteredProducts.length === 0 ? (
           <Text style={styles.noResults}>Sajnos nincs ilyen termék</Text>
         ) : (

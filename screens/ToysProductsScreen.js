@@ -1,31 +1,36 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, FlatList, Button, StyleSheet, ImageBackground, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { CartContext } from '../contexts/CartContext';
-
-const allProducts = [
-  // Játékok
-  { id: '1', name: 'Tamagotchi', price: 1000, category: 'Játék' },
-  { id: '2', name: 'Bébi játék', price: 500, category: 'Játék' },
-  { id: '3', name: 'Lego építőjáték', price: 3000, category: 'Építő' },
-  { id: '4', name: 'Tűzoltóautó', price: 1500, category: 'Járművek' },
-  { id: '5', name: 'Bábukészlet', price: 1200, category: 'Játék' },
-  { id: '6', name: 'Puzzle', price: 800, category: 'Építő' },
-  { id: '7', name: 'Dínó figura', price: 1100, category: 'Játék' },
-  { id: '8', name: 'Képregény', price: 600, category: 'Játék' },
-  { id: '9', name: 'Biliárd játék', price: 2500, category: 'Játék' },
-  { id: '10', name: 'Játék kamera', price: 2200, category: 'Játék' },
-  { id: '11', name: 'Autós szett', price: 2000, category: 'Járművek' },
-  { id: '12', name: 'Képregény', price: 600, category: 'Játék' },
-];
+import { db } from '../firebaseConfig'; // Adjust the path to your Firebase config file
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function ToysProductsScreen({ navigation }) {
   const { addToCart } = useContext(CartContext);
+  const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Szűrt termékek
-  const filteredProducts = allProducts.filter(product => {
+  // Fetch products from Firestore
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'ToysProducts'));
+        const fetchedProducts = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error("Error fetching products: ", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Filter products based on category and search query
+  const filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -41,7 +46,7 @@ export default function ToysProductsScreen({ navigation }) {
       <View style={styles.overlay}>
         <Button title="Ugrás a kosárhoz" onPress={() => navigation.navigate('Cart')} />
 
-        {/* Keresőmező */}
+        {/* Search Input */}
         <TextInput
           style={styles.searchInput}
           placeholder="Keresés terméknév alapján"
@@ -49,7 +54,7 @@ export default function ToysProductsScreen({ navigation }) {
           onChangeText={setSearchQuery}
         />
 
-        {/* Kategória kiválasztó */}
+        {/* Category Picker */}
         <Picker
           selectedValue={selectedCategory}
           style={styles.picker}
@@ -61,7 +66,7 @@ export default function ToysProductsScreen({ navigation }) {
           <Picker.Item label="Járművek" value="Járművek" />
         </Picker>
 
-        {/* Ha nincs találat, megjelenítjük az üzenetet */}
+        {/* Display filtered products or no results message */}
         {filteredProducts.length === 0 ? (
           <Text style={styles.noResults}>Sajnos nincs ilyen termék</Text>
         ) : (
